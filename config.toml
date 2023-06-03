@@ -35,6 +35,8 @@ email = "edithwuly@163.com"
 [markup]
 [markup.highlight]
 style = "github"
+[markup.goldmark.renderer]
+unsafe = true
 
 [params]
 subtitle = "@edithwuly"
