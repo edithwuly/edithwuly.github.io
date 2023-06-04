@@ -1,0 +1,9 @@
+const enableTitleAnchor=()=>{[...Array(6).keys()].map(e=>e+1).forEach(e=>{const t=document.querySelectorAll("article#content>h"+e);t.forEach(e=>{e.innerHTML=`
+          <a href="#${e.id}" class="anchor icon-link" aria-hidden="true">
+            <i class="fa-solid fa-hashtag"></i>
+          </a>
+          ${e.innerHTML}`})})},enableBackref=()=>{const e=document.querySelectorAll(".footnotes a.footnote-backref");e.forEach(e=>{e.innerHTML='<i class="fa-solid fa-arrow-up-from-bracket"></i>'})},enablePopup=()=>{const e=document.querySelectorAll("sup");e.forEach(e=>{const t=document.getElementById(`fn:${e.id.substr(-1,1)}`).firstElementChild;e.innerHTML=`
+    ${e.innerHTML}
+    <div class="sup-popup">
+      ${t.textContent}
+    </div>`})},enableScrollSpy=()=>{$("article").data("bs-spy")&&($("#TableOfContents").addClass("nav flex-column"),$("#TableOfContents li").addClass("nav-item"),$("#TableOfContents li a").addClass("nav-link"),$("body").scrollspy("refresh"))},enableScrollToTop=()=>{const e=document.querySelector(".scroll-to-top");e.addEventListener("click",()=>{window.scroll({top:0,left:0,behavior:"smooth"})});const t=100;document.addEventListener("scroll",()=>{e.style.visibility=window.scrollY>t?"visible":"hidden",e.style.opacity=window.scrollY>t?1:0})},sendMessage=e=>{const t=document.querySelector("iframe.giscus-frame");if(!t)return;t.contentWindow.postMessage({giscus:e},"https://giscus.app")},enableToggleColorScheme=()=>{const t="theme",n="light",e="dark";document.querySelector(".toggle-color-scheme").addEventListener("click",()=>{localStorage.getItem(t)===n?(localStorage.setItem(t,e),document.documentElement.classList.add(e),sendMessage({setConfig:{theme:e}})):(document.documentElement.classList.remove(e),localStorage.setItem(t,n),sendMessage({setConfig:{theme:n}}))})};$(document).ready(()=>{enableTitleAnchor(),enableBackref(),enablePopup(),enableScrollSpy(),enableScrollToTop(),enableToggleColorScheme()})

@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>NLP on Edith Wu's Blog</title><link>https://edithwuly.github.io/tags/nlp/</link><description>Recent content in NLP on Edith Wu's Blog</description><generator>Hugo -- gohugo.io</generator><language>
+zh-Hans</language><managingEditor>
+edithwuly@163.com (Edith Wu)</managingEditor><webMaster>
+edithwuly@163.com (Edith Wu)</webMaster><copyright>
+© 2023 Edith Wu. This site is licensed under a Creative Commons Attribution 4.0 International license.</copyright><lastBuildDate>
+Tue, 06 Sep 2022 15:10:05 +0800</lastBuildDate><atom:link href="https://edithwuly.github.io/tags/nlp/index.xml" rel="self" type="application/rss+xml"/><item><title>Attention-Transformer</title><link>https://edithwuly.github.io/posts/attention-transformer/</link><pubDate>Tue, 06 Sep 2022 15:10:05 +0800</pubDate><author>edithwuly@163.com (Edith Wu)</author><guid>https://edithwuly.github.io/posts/attention-transformer/</guid><description>&lt;h2 id="attention">Attention&lt;/h2>
+&lt;h3 id="attention的基本理解">Attention的基本理解&lt;/h3>
+&lt;p>对于没有采用Attention的模型而言，每个输入对于输出的影响力都是一样的。以传统的采用了Seq2Seq模型的机器翻译为例，假设需要翻译&amp;quot;Tom chase Jerry&amp;quot;，由于Encoder会先把输入转换为中间结果，在这一步中，输入的每个单词都具有相同的影响力，然后再由Decoder把中间结果解析成“汤姆追逐杰瑞”。&lt;/p>
+&lt;p>对于较短的输入而言，传统的RNN模型能够较完整的保存输入的信息，但是随着输入的加长，如果把所有输入等权重地压缩中一个中间结果，由于RNN模型本身存在远距离依赖消失的问题，必然会丢失掉部分输入的特征信息，从而导致最后的输出不能完整地反映输入。&lt;/p>
+&lt;p>在加入了Attention之后，能够细化每个输入对于输出的影响力大小，通过对输入的特征信息加以相应的Attention权重，使得输出能够更好的反映高影响力的信息特征。例如对于&amp;quot;Tom chase Jerry&amp;quot;的翻译，Encoder可能产生三个中间结果，其中&amp;quot;Tom&amp;quot;对于第一个中间结果的影响力更高，&amp;ldquo;chase&amp;quot;对于第二个中间结果的影响力更高，&amp;ldquo;Jerry&amp;quot;对于第三个中间结果的影响力更高。&lt;/p>
+&lt;h3 id="attention的结构">Attention的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/Attention_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">Attention的计算过程&lt;/div>
+&lt;/center>
+&lt;p>上图为大多数Attention的计算过程。在第一阶段，根据当前的Query向量，计算其与各个Key向量的相似性或者相关性，大多使用向量点积。在第二阶段，使用SoftMax()函数进行归一化，将第一阶段产生的计算分值整理成权重之和为1的概率分布，得到的结果就是各个输入对于当前输出的Attention权重。在第三阶段，将各个输入的Value向量采用Attention权重进行加权求和，得到当前输出的中间结果。&lt;/p>
+&lt;p>例如对于传统的Seq2Seq模型来说，在t时刻的Query向量可以采用t-1时刻Decoder的隐藏层状态$h_{t-1}$，Key向量可以采用Encoder各个输入的隐藏层状态$h_i$，Value向量则是各个输入向量$x_i$。&lt;/p>
+&lt;h3 id="self-attention">Self-Attention&lt;/h3>
+&lt;p>在一般的Seq2Seq模型中，输入和输出的内容是不一样的，比如对于英中机器翻译来说，输入是英文句子，输出是中文句子，Attention机制发生在各个输出的Query向量和所有输入之间。而Self-Attention，指的不是输入和输出之间的Attention机制，而是输入与输入之间或者输出与输出之间的Attention机制。&lt;/p>
+&lt;p>在上一节的计算过程中，每个输入的Query向量、Key向量和Value向量可以通过自定义$W_q,W_k,W_v$矩阵对其字向量进行线性变换得到。&lt;/p>
+&lt;p>通过采用Self-Attention，可以直接计算出句子中任意两个单词的相关性，使得更容易捕获句子中长距离的相互依赖的特征，例如短语结构或者指代结构。&lt;/p>
+&lt;h3 id="multi-head-attention">Multi-Head Attention&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/multi-head_attention_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">Multi-Head Attention的计算过程&lt;/div>
+&lt;/center>
+&lt;p>上图为Multi-Head Attention的计算过程。相比于普通的Self-Attention，Multi-Head Attention采用了多组线性变化矩阵$W_q,W_k,W_v$，生成的多个Attention权重矩阵。&lt;/p>
+&lt;p>Multi-Head Attention使得能够同时关注一个单词与其他单词不同的角度的相关性，例如一个代词同时也是句法结构的一部分。&lt;/p>
+&lt;h2 id="transformer">Transformer&lt;/h2>
+&lt;h3 id="transformer的基本理解">Transformer的基本理解&lt;/h3>
+&lt;p>由于在RNN模型中，t时刻的输出依赖于t-1时刻的隐层状态，即只能根据输入的顺序依次进行计算，极大地限制了模型的并行能力。同时，RNN模型还存在难以保存远距离依赖关系的问题。&lt;/p>
+&lt;p>对此，Transformer选择抛弃传统的CNN和RNN结构，由且仅由Self-Attenion和Feed Forward Neural Network组成，将序列中的任意两个位置之间的距离是缩小为一个常量，而且由于不是顺序结构，因此具有更好的并行性，符合现有的GPU框架。&lt;/p>
+&lt;h3 id="transformer的结构">Transformer的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/Transformer_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">Transformer的结构&lt;/div>
+&lt;/center>
+&lt;p>上图为Transformer的结构。&lt;/p>
+&lt;h4 id="encoder部分">Encoder部分：&lt;/h4>
+&lt;p>Encoder部分的输入每个字的Word Embedding + Position Encoding，由于Transformer模型采用的非顺序结构，所以必须额外提供每个输入的位置信息，才能识别出语言中的顺序关系。&lt;/p>
+&lt;p>Encoder的主体部分为多个Encoder的叠加，每个Encoder由Self-Attention模块和Feed Forward Neural Network模块组成，Self-Attention模块用来捕获句子中长距离的相互依赖的特征，由于Transformer中的Self-Attention采用的是Multi-Head Attention机制，因此，对于一个字会产生多个Attention权重矩阵，每个字的value向量与不同的Attention权重矩阵加权求和后，会产生多个加权矩阵。而Feed Forward Neural Network模块则会将多个加权矩阵连接在一起，拼成一个大矩阵，用激活函数激活后，线性映射成所需要的大小。&lt;/p>
+&lt;p>对于每一个Self-Attention模块和Feed Forward Neural Network模块的结果，都需要Add &amp;amp; Normalize层。首先，进行Residual Connection，将该模块的输入与输出进行相加，使得在反向传播过程中，该模块求偏导的时候多一个常数项，一定程度上可以缓解梯度消失问题。然后，进行Normalize，把该模块的输出转化成均值为0方差为1的形式，加快收敛的速度。&lt;/p>
+&lt;h4 id="decoder部分">Decoder部分：&lt;/h4>
+&lt;p>在推断时，Decoder部分的输入为之前输出的Word Embedding + Position Encoding。但是，在训练时，如果同样采用之前的输出作为输入，可能会因为偏差的累积，导致预测的结果越来越差，因此，在训练时，Decoder部分的输入为Ground Truth的Word Embedding + Position Encoding。&lt;/p>
+&lt;p>但是，由于Decoder需要按照循序依次进行decode，在预测t时刻的输出时，只能看到t-1时刻以及之前的输出，因此，在训练时，Decoder的Self-Attention模块需要对Ground Truth中t时刻以及之后的信息进行Mask。具体操作为，计算Attention权重矩阵的时候，在进行归一化之前，保持t-1时刻以及之前的向量点积不变，将t时刻以及之后的向量点积变为$-inf$，这样能够使得t时刻以及之后的Attention权重无限趋近于0。&lt;/p>
+&lt;p>Decoder中的Encoder-Decoder Attention模块使用Attenton机制对Encoder的输出进行decode，其Query向量为Decoder中Self-Attention模块的输出，Key向量和Value向量由Encoder的输出与$W&amp;rsquo;_k$和$W&amp;rsquo;_v$相乘，进行矩阵变换得到。&lt;/p>
+&lt;p>Decoder中的Feed Forward Neural Network模块则与Encoder相同，由于Decoder的Self-Attention和Encoder-Decoder Attention模块都采用了Multi-Head Attention的形式，因此会生成多个Attention权重矩阵，由Feed Forward Neural Network模块进行拼接，激活，并线性映射到需要的大小。&lt;/p>
+&lt;p>最后，Decoder部分将输出向量线性映射成与词典大小相同的向量，并Softmax函数激活，则可以得到词典中每个词的概率。&lt;/p>
+&lt;h3 id="存在问题">存在问题&lt;/h3>
+&lt;ol>
+&lt;li>
+&lt;p>Transformer局部特征的捕捉能力不如RNN强&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Transformer丢失了输入的位置信息，虽然使用了Position Encoding进行弥补，但是不能保证Position Encoding在经过多次线性变换后，仍然完整地保留了位置信息。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="reference">Reference&lt;/h2>
+&lt;p>&lt;a href="https://blog.csdn.net/malefactor/article/details/78767781">https://blog.csdn.net/malefactor/article/details/78767781&lt;/a>
+&lt;a href="https://wmathor.com/index.php/archives/1438/">https://wmathor.com/index.php/archives/1438/&lt;/a>
+&lt;a href="http://mantchs.com/2019/09/26/NLP/Transformer/">http://mantchs.com/2019/09/26/NLP/Transformer/&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/48508221">https://zhuanlan.zhihu.com/p/48508221&lt;/a>
+&lt;a href="http://jalammar.github.io/illustrated-transformer/">http://jalammar.github.io/illustrated-transformer/&lt;/a>
+&lt;a href="http://www.qishunwang.net/news_show_87606.aspx">http://www.qishunwang.net/news_show_87606.aspx&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/330483336">https://zhuanlan.zhihu.com/p/330483336&lt;/a>&lt;/p></description></item><item><title>Bert-GPT-ELMo-XLNet</title><link>https://edithwuly.github.io/posts/bert-gpt-elmo-xlnet/</link><pubDate>Tue, 06 Sep 2022 15:10:05 +0800</pubDate><author>edithwuly@163.com (Edith Wu)</author><guid>https://edithwuly.github.io/posts/bert-gpt-elmo-xlnet/</guid><description>&lt;h2 id="bidirectional-encoder-representation-from-transformerbert">Bidirectional Encoder Representation from Transformer(Bert)&lt;/h2>
+&lt;h3 id="bert的基本理解">Bert的基本理解&lt;/h3>
+&lt;p>Bert是一个能够适应各类NLP问题的通用预训练架构。其通过在大量的训练语料上以自监督学习的方式学习到词的特征表示，使得不同的NLP任务只需要对Bert进行微调，就能达到预期的效果，而不需要重新设计模型架构。&lt;/p>
+&lt;h3 id="bert的预训练任务">Bert的预训练任务&lt;/h3>
+&lt;p>BERT是一个多任务模型，是由两个自监督任务组成。&lt;/p>
+&lt;h4 id="masked-language-modelmlm">Masked Language Model(MLM)：&lt;/h4>
+&lt;p>在MLM任务的训练过程中，输入语料中15%的词会被随机Mask掉，而在该语料多次参与训练的过程中，80%的时候被Mask的词会被替换成[Mask]，10%的时候会被替换成其他任意的词，10%的时候会保留原词。然后，模型根据上下文预测被Mask的词。&lt;/p>
+&lt;p>因为如果每次都把被Mask掉的词替换成[Mask]，则模型则可能不会学习到该次的特征表示，而随机替换成任意词，则是为了不让模型意识到[Mask]与原词的关系。&lt;/p>
+&lt;p>通过MLM，使得Bert模型能够更好地根据上下文预测当前词，并且赋予了模型一定程度的纠错能力。&lt;/p>
+&lt;h4 id="next-sentence-predictionnsp">Next Sentence Prediction(NSP)：&lt;/h4>
+&lt;p>在NSP任务的训练过程中，输入语料为多对连续的句子，将50%的句子对中的一句换成其他任意的句子，使得连续的句子对和不连续的句子比例为1:1。然后，模型判断当前句子对是否连续。&lt;/p>
+&lt;p>通过NSP，使得Bert模型能够理解句子之间的关系。&lt;/p>
+&lt;h3 id="bert的结构">Bert的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/Bert_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">Bert的结构&lt;/div>
+&lt;/center>
+&lt;p>上图为Bert的结构，由多个Transformer全连接层组成，因此Bert能够结合当前词上下文的语境进行预测。&lt;/p>
+&lt;p>Bert的输入是一个句子对的 Word Embedding + Position Encoding + Segment Encoding，在首句的句首加上一个特殊的Token[CLS]，在首句和尾句的句尾也加上一个特殊的Token[SEP]。其中，Segment Encoding只有两种状态，用来标记该词属于首句还是尾句。&lt;/p>
+&lt;h3 id="bert的fine-tuning">Bert的Fine-Tuning&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/Bert_Fine-Tuning.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">Fine-Tuning的四种形式&lt;/div>
+&lt;/center>
+&lt;p>上图为对Bert模型进行Fine-Tuning的四种主要形式，对应四种主要的NLP任务。&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>对于普通的分类任务，输入是一个序列，所有的Token都是属于同一个Segment，即Segment Encoding相同，可以对[CLS]的最后一层输出使用分类器进行分类。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>对于相似度计算的任务，输入是两个序列，只需要对[CLS]的最后一层输出使用分类器进行分类。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>对于问答的任务，输入是问题序列和一段包含答案的paragraph序列，输出为答案在paragraph序列中的开始和结束位置。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>对于序列标注的任务，比如命名实体识别，输入是一个序列，需要对除了[CLS]和[SEP]之外的每个时刻的最后一层输出进行分类。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="问题">问题&lt;/h3>
+&lt;ol>
+&lt;li>
+&lt;p>MLM任务使得Bert能够借助上下文理解语义，但同时导致其预训练的数据与微调的数据不匹配，因此其适合处理自然语义理解类任务，不适合自然语言生成式任务。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>由于Bert模型要求序列的长度必须一致，如果过长则需要截断，过短则用padding补齐，因此其适合句子和段落级别的任务，不适用于文档级别的任务。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="generative-pre-training-transformergpt">Generative Pre-training Transformer(GPT)&lt;/h2>
+&lt;h3 id="gpt的基本理解">GPT的基本理解&lt;/h3>
+&lt;p>GPT的思想与Bert类似，也是通过无标签的数据上训练得到一个通用的语言模型，然后再根据特定的任务进行微调。其采用多层单向Transformer作为特征抽取器。&lt;/p>
+&lt;h3 id="gpt的结构">GPT的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/GPT_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">GPT的结构&lt;/div>
+&lt;/center>
+&lt;p>上图为GPT的结构，与Bert类似，但是采用的是单向Transformer，即训练时通过Mask Multi-Head Attention模块遮蔽Ground Truth中当前时刻之后的词。输入为当前词的Word Embedding + Position Encoding。&lt;/p>
+&lt;p>与Bert类似，GPT在完成预训练之后，不同的NLP任务只需要对其进行微调即可。&lt;/p>
+&lt;p>GPT作为单向语言模型，与Bert不同，无法同时捕捉上下文信息，因此更适合自然语言生成式任务，不适合自然语言理解类任务。&lt;/p>
+&lt;h3 id="gpt-2和gpt-3">GPT-2和GPT-3&lt;/h3>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th style="text-align:center">模型&lt;/th>
+&lt;th style="text-align:center">参数数量&lt;/th>
+&lt;th style="text-align:center">预训练数据量&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td style="text-align:center">GPT&lt;/td>
+&lt;td style="text-align:center">1.17亿&lt;/td>
+&lt;td style="text-align:center">约5GB&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:center">GPT-2&lt;/td>
+&lt;td style="text-align:center">15 亿&lt;/td>
+&lt;td style="text-align:center">40GB&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td style="text-align:center">GPT-3&lt;/td>
+&lt;td style="text-align:center">1750 亿&lt;/td>
+&lt;td style="text-align:center">45TB&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>GPT-2和GPT-3的目标是进一步提高GPT模型的泛化能力。GPT-2和GPT-3相比GPT-1，没有对模型结构进行过多的创新与设计，而是使用了更多的参数和更大的数据集。GPT-2和GPT-3验证了通过增加参数数量和预训练数据量，得到模型具有更高的泛化能力，可以在仅给定任务说明和少量示例的情况下可以迁移到其他NLP任务中，不需要额外的Fine-Tuning样本进行有监督训练。&lt;/p>
+&lt;h2 id="embedding-from-language-modelelmo">Embedding from Language Model(ELMo)&lt;/h2>
+&lt;h3 id="elmo的基本理解">ELMo的基本理解&lt;/h3>
+&lt;p>由于传统的Word Embedding都是固定的，即每个词有唯一的Word Embedding，因此不能很好地解决一词多义的情况。ELMo利用了多层双向的LSTM结构，其中低层的LSTM用于捕捉比较简单的语法信息，高层的LSTM捕捉依赖于上下文的语义信息，根据当前上下文对Word Embedding进行动态调整。&lt;/p>
+&lt;h3 id="elmo的结构">ELMo的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/ELMo_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">ELMo的结构&lt;/div>
+&lt;/center>
+&lt;p>上图为ELMo的结构，输入为当前词的Word Embedding，主体部分由一个从左到右的多层LSTM和一个从右往左的多层LSTM构成，前者用于捕捉当前词与前文的关系，后者用于捕捉与后文的关系。最后将两者的输出与当前词的Word Embedding加权求和后作为当前词根据上下文调整后的Contextual Embedding。&lt;/p>
+&lt;p>虽然ELMo采用了两个多层LSTM，一个用于捕捉上文信息，一个用于捕捉下文信息，但是由于RNN的顺序结构，仍然无法做到同时捕捉上下文信息，因此仍为单向语言模型，与GPT相同，更适合自然语言生成式任务，不适合自然语言理解类任务。同时，ELMo所使用的LSTM相对于Transformer特征捕捉的能力也较弱。&lt;/p>
+&lt;h2 id="xlnet">XLNet&lt;/h2>
+&lt;h3 id="xlnet的基本理解">XLNet的基本理解&lt;/h3>
+&lt;p>由于以Bert为代表的autoencoding(AE)language model虽然可以捕捉上下语言特征，但是由于Fine-Tuning的数据中没有MASK，使得与预训练数据不一致，容易引入误差。同时，以GPT为代表的autoregressive(AR)language model为单向语言模型，无法同时捕捉上下文信息。&lt;/p>
+&lt;p>为了兼顾AR的方法可以更好地学习单词之间依赖关系的优点，以及AE的方法可以更好地利用深层的双向信息的优点，XLNet使用了Permutation Language Model(PLM)的方法。&lt;/p>
+&lt;p>XLNet将句子中的单词随机排列，然后采用AR的方式预测末尾的几个单词，这使得在预测单词的时候就可以同时利用该单词双向的信息，并且能学到单词间的依赖。&lt;/p>
+&lt;h3 id="xlnet的结构">XLNet的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/XLNet_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">XLNet的结构&lt;/div>
+&lt;/center>
+&lt;p>上图为XLNet的结构。XLNet的输入为句子的 Word Embedding 和 Position Encoding，采用了Two-Stream Self-Attention机制，通过Attention掩码机制模拟句子中单词的随机排列，即仅向下层传递打乱后该单词位置之前的单词信息，其中Content Stream与传统的transformer attention机制相同，向下层传递该单词及打乱后其位置之前的单词内容信息，而Query Stream则向下层传递该单词的原始位置信息以及打乱后其位置之前的单词内容信息。&lt;/p>
+&lt;p>XLNet还采用了Segment Recurrence Mechanism(段循环)机制，即将上一个句子输出的信息保存下来，用于当前句子的计算，使模型可以拥有更广阔的上下文信息。同时，为了避免引入上一个句子的信息后所导致不同单词拥有相同的Positional Encoding的问题，XLNet采用了Relative Positional Encoding(相对位置编码)，即以单词之间的相对位置作为Position Encoding。&lt;/p>
+&lt;h2 id="reference">Reference&lt;/h2>
+&lt;p>&lt;a href="https://zhuanlan.zhihu.com/p/48612853">https://zhuanlan.zhihu.com/p/48612853&lt;/a>
+&lt;a href="https://wmathor.com/index.php/archives/1456/">https://wmathor.com/index.php/archives/1456/&lt;/a>
+&lt;a href="https://www.cnblogs.com/gczr/p/11785930.html">https://www.cnblogs.com/gczr/p/11785930.html&lt;/a>
+&lt;a href="http://fancyerii.github.io/2019/03/09/bert-theory/">http://fancyerii.github.io/2019/03/09/bert-theory/&lt;/a>
+&lt;a href="https://www.cnblogs.com/sandwichnlp/p/11947627.html">https://www.cnblogs.com/sandwichnlp/p/11947627.html&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/350017443">https://zhuanlan.zhihu.com/p/350017443&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/200978538">https://zhuanlan.zhihu.com/p/200978538&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/72309137">https://zhuanlan.zhihu.com/p/72309137&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/63115885">https://zhuanlan.zhihu.com/p/63115885&lt;/a>
+&lt;a href="https://www.jianshu.com/p/2b5b368cbaa0">https://www.jianshu.com/p/2b5b368cbaa0&lt;/a>&lt;/p></description></item><item><title>RNN-LSTM</title><link>https://edithwuly.github.io/posts/rnn-lstm/</link><pubDate>Tue, 06 Sep 2022 15:10:05 +0800</pubDate><author>edithwuly@163.com (Edith Wu)</author><guid>https://edithwuly.github.io/posts/rnn-lstm/</guid><description>&lt;h2 id="recurrent-neural-networkrnn">Recurrent Neural Network(RNN)&lt;/h2>
+&lt;h3 id="rnn的基础理解">RNN的基础理解&lt;/h3>
+&lt;p>对于RNN而言，一个序列当前的输出与之前的输出也有关。具体的表现形式为网络会对前面的信息进行记忆，保存在网络的内部状态中，并应用于当前输出的计算中，即隐含层之间的节点不再无连接而是有链接的，并且隐含层的输入不仅包含输入层的输出还包含上一时刻隐含层的输出。如果想要通过RNN获得相同的输出，则不仅需要保证输入相同，也需要保证输入的序列相同。&lt;/p>
+&lt;h3 id="rnn的结构">RNN的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/standard_RNN.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">RNN标准结构&lt;/div>
+&lt;/center>
+&lt;p>上图为RNN的标准结构，其中W、V、U为权重，o为输出，y为标记，x为输入，h为隐藏层状态。L为输入o与y的损失函数。可以看出，t时刻的输出o&lt;sup>(t)&lt;/sup>，不仅仅取决于t时刻的输入x&lt;sup>(t)&lt;/sup>，还取决于t-1时刻的隐藏层状态h&lt;sup>(t-1)&lt;/sup>，即&lt;/p>
+&lt;p>$$h^{(t)} = \phi (Ux^{(t)} + Wh^{(t-1)} + b)$$
+$$o^{(t)} = Vh^{(t)} + c$$&lt;/p>
+&lt;p>其中$\phi$为激活函数，一般使用tanh函数或者sigmoid函数。由于tanh函数是零点中心对称，相比sigmoid函数可以收敛的更好。&lt;/p>
+&lt;p>BPTT(back-propagation through time)是RNN常用的训练方法，该方法基于时间反向传播，沿着W、V、U三个权重矩阵的负梯度方向不断优化，直至收敛，即损失函数L达到最小值。&lt;/p>
+&lt;p>原始的RNN要求输入与输出一一对应，但是这样的结构并不能解决所有问题，在实际使问题中，存在大量输入与输出序列不等长的问题，例如多输入单输出（分类问题），或者N输入M输出（翻译问题）等等。因此，Seq2Seq模型（Encoder-Decoder模型）出现了。&lt;/p>
+&lt;h3 id="seq2seq模型">Seq2Seq模型&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/Seq2Seq_model.jfif">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">Seq2Seq模型结构&lt;/div>
+&lt;/center>
+&lt;p>上图为Seq2Seq模型基本结构，先使用一个RNN对输入进行编码，得到中间结果，再使用一个RNN对中间结果进行解码，得到输出。中间结果大多为Encoder的最后一个隐藏层状态。&lt;/p>
+&lt;h3 id="存在问题">存在问题&lt;/h3>
+&lt;p>在RNN的反向传播过程中，由于W和U的偏导的求解需要涉及到历史数据，假设只有三个时刻，那么在第三个时刻L对W的偏导数为：
+$$\frac{\partial L^{(3)}}{\partial W} = \frac{\partial L^{(3)}}{\partial o^{(3)}}\frac{\partial o^{(3)}}{\partial h^{(3)}}\frac{\partial h^{(3)}}{\partial W} + \frac{\partial L^{(3)}}{\partial o^{(3)}}\frac{\partial o^{(3)}}{\partial h^{(3)}}\frac{\partial h^{(3)}}{\partial h^{(2)}}\frac{\partial h^{(2)}}{\partial W} + \frac{\partial L^{(3)}}{\partial o^{(3)}}\frac{\partial o^{(3)}}{\partial h^{(3)}}\frac{\partial h^{(3)}}{\partial h^{(2)}}\frac{\partial h^{(2)}}{\partial h^{(1)}}\frac{\partial h^{(1)}}{\partial W}$$
+L对U的偏导数为：
+$$\frac{\partial L^{(3)}}{\partial U} = \frac{\partial L^{(3)}}{\partial o^{(3)}}\frac{\partial o^{(3)}}{\partial h^{(3)}}\frac{\partial h^{(3)}}{\partial U} + \frac{\partial L^{(3)}}{\partial o^{(3)}}\frac{\partial o^{(3)}}{\partial h^{(3)}}\frac{\partial h^{(3)}}{\partial h^{(2)}}\frac{\partial h^{(2)}}{\partial U} + \frac{\partial L^{(3)}}{\partial o^{(3)}}\frac{\partial o^{(3)}}{\partial h^{(3)}}\frac{\partial h^{(3)}}{\partial h^{(2)}}\frac{\partial h^{(2)}}{\partial h^{(1)}}\frac{\partial h^{(1)}}{\partial U}$$
+类推到t时刻，则
+$$\frac{\partial L^{(t)}}{\partial W} = \sum^t_{k=0}\frac{\partial L^{(t)}}{\partial o^{(t)}}\frac{\partial o^{(t)}}{\partial h^{(t)}}(\prod^t_{j=k+1}\frac{\partial h^{(j)}}{\partial h^{(j-1)}})\frac{\partial h^{(k)}}{\partial W}$$
+$$\frac{\partial L^{(t)}}{\partial U} = \sum^t_{k=0}\frac{\partial L^{(t)}}{\partial o^{(t)}}\frac{\partial o^{(t)}}{\partial h^{(t)}}(\prod^t_{j=k+1}\frac{\partial h^{(j)}}{\partial h^{(j-1)}})\frac{\partial h^{(k)}}{\partial U}$$
+由于
+$$h^{(t)} = \phi (Ux^{(t)} + Wh^{(t-1)} + b)$$
+所以
+$$\frac{\partial h^{(j)}}{\partial h^{(j-1)}} = \phi&amp;rsquo;W$$&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>梯度消失
+如果取sigmoid函数作为激活函数的话，sigmoid函数导数值范围为(0,0.25]，那么必然是一堆小数在做乘法，结果就是越乘越小。随着时间序列的不断深入，小数的累乘就会导致梯度越来越小直到接近于0。也就是说，梯度被近距离梯度主导，导致难以学到远距离的依赖关系。&lt;/p>
+&lt;p>假设需要预测&amp;quot;I grew up in France&amp;hellip; I speak fluent French&amp;quot;的最后一个词，那需要保留第5个词&amp;quot;France&amp;quot;的信息，但是&amp;quot;France&amp;quot;与当前预测位置之间的间隔就相当大，以至于RNN难以学习到当前预测位置与&amp;quot;France&amp;quot;之间的依赖关系。&lt;/p>
+&lt;p>如果取tanh函数作为激活函数，tanh函数的导数范围是(0,1]，相对好一些，但是也没有解决根本问题。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>梯度爆炸&lt;/p>
+&lt;p>如果选用的激活函数的导数值比较大或者W非常大的时候，则随着时间序列的不断深入，累乘的结果会接近于无穷。&lt;/p>
+&lt;p>处理梯度爆炸可以采用梯度截断的方法，将梯度值超过阈值的梯度手动降到预设值。虽然梯度截断会一定程度上改变梯度的方向，但梯度截断的方向依旧是朝向损失函数减小的方向。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="long-short-term-memorylstm">Long Short Term Memory(LSTM)&lt;/h2>
+&lt;h3 id="lstm的基础理解">LSTM的基础理解&lt;/h3>
+&lt;p>LSTM在传统RNN的基础上引入了门（gate）机制用于控制特征的流通和损失。&lt;/p>
+&lt;h3 id="lstm的结构">LSTM的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/LSTM_structure.jpg">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">LSTM模型结构&lt;/div>
+&lt;/center>
+&lt;p>上图为LSTM的基本结构。其中，遗忘门$f_t$用来决定上一个时刻的单元状态$C_{t-1}$的哪些特征被用于计算当前时刻的单元状态$C_t$。单元状态更新值$\tilde{C_t}$由当前输入$x_t$和上一个时刻的隐层状态$h_{t-1}$决定,输入门$i_t$用来决定$\tilde{C_t}$的哪些特征被用于计算当前时刻的单元状态$C_t$。最后，输出门$o_t$用来计算当前的隐层状态。&lt;/p>
+&lt;p>通过遗忘门的控制，就可以决定在长文本的学习中，哪些特征需要被保留，例如在&amp;quot;I grew up in France&amp;hellip; I speak fluent French&amp;quot;的例子中，&amp;ldquo;France&amp;quot;的信息就可以被保留用于预测最后一个词。&lt;/p>
+&lt;h3 id="梯度消失和梯度爆炸">梯度消失和梯度爆炸&lt;/h3>
+&lt;ol>
+&lt;li>
+&lt;p>梯度消失&lt;/p>
+&lt;p>LSTM刚提出时单元状态的更新函数为
+$$C_t = C_{t-1} + i_t \times \tilde{C_t} $$
+相当于遗忘门$f_t=1$，从而$C_{t-1}$的梯度可以直接传给$C_t$，不会消失。但是在其他传播路径上，LSTM的梯度流和普通RNN没有太大区别，依然会消失。由于总梯度 = 各传播路径的梯度之和，即便其他传播路径梯度消失了，只要保证有一条传播路径梯度不消失，总梯度就不会消失。因此LSTM通过改善单元状态更新路径上的梯度问题拯救了总梯度。&lt;/p>
+&lt;p>对于带遗忘门的LSTM来说，如果遗忘门$f_t \approx 1$，则类似与原始的LSTM。如果遗忘门$f_t \approx 0$，例如情感分析任务中有一条样本 “A，但是 B”，模型读到“但是”后选择把遗忘门设置成 0，遗忘掉内容 A，但这时模型是故意阻断梯度流的。最后，当$f_t\in [0, 1]$时，在这种情况下只能说LSTM改善了梯度消失的状况。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>梯度爆炸&lt;/p>
+&lt;p>因为总梯度 = 各传播路径的远距离梯度之和，任意一条传播路径的梯度爆炸，总梯度都会爆炸，因此LSTM仍无法避免梯度爆炸的问题。不过，由于LSTM改善单元状态更新路径上的梯度比较稳定，其他传播路径和原始RNN相比多又经过了很多次激活函数，而激活函数的导数大都小于1，因此LSTM发生梯度爆炸的频率要低得多。而就算发生梯度爆炸也可以通过梯度截断来解决。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="gru">GRU&lt;/h2>
+&lt;h3 id="gru的基础理解">GRU的基础理解&lt;/h3>
+&lt;p>与LSTM相比，GRU去除掉了细胞状态，使用隐藏状态来进行特征的传递。它只包含两个门：更新门和重置门。GRU相对于LSTM而言，参数更少，因而训练稍快或需要更少的数据来泛化。另一方面，如果你有足够的数据，LSTM的强大表达能力可能会产生更好的结果。&lt;/p>
+&lt;h3 id="gru的结构">GRU的结构&lt;/h3>
+&lt;center>
+&lt;img style="border-radius: 0.3125em;
+box-shadow: 0 2px 4px 0 rgba(34,36,38,.12),0 2px 10px 0 rgba(34,36,38,.08);"
+src="https://edithwuly.github.io/pic/GRU_structure.png">
+&lt;br>
+&lt;div style="color:orange; border-bottom: 1px solid #d9d9d9;
+display: inline-block;
+color: #999;
+padding: 2px;">GRU模型结构&lt;/div>
+&lt;/center>
+&lt;p>上图是GRU的基本结构。其中，重置门$r_t$用来控制当前的候选隐藏层状态中需要保留多少之前的记忆，比如如果$r_t$为0，那么当前的候选隐藏层状态$\tilde{h_t}$只包含当前词的信息。更新门$z_t$用于控制当前的隐藏层状态中，来自于前一时刻的隐藏层状态$h_{t-1}$的特征信息，与来自于当前时刻的候选隐藏层状态$\tilde{h_t}$的特征信息的比例。&lt;/p>
+&lt;p>一般来说那些具有短距离依赖的单元重置门$r_t$比较活跃，因为如果 $r_t$为1，而$z_t$为0，那么相当于变成了一个标准的RNN，具有较好的短距离依赖，具有长距离依赖的单元$z_t$比较活跃。&lt;/p>
+&lt;h2 id="reference">Reference&lt;/h2>
+&lt;p>&lt;a href="https://blog.csdn.net/qq_16234613/article/details/79476763">https://blog.csdn.net/qq_16234613/article/details/79476763&lt;/a>
+&lt;a href="https://blog.csdn.net/weixin_41089007/article/details/96474760">https://blog.csdn.net/weixin_41089007/article/details/96474760&lt;/a>
+&lt;a href="https://blog.csdn.net/zhaojc1995/article/details/80572098">https://blog.csdn.net/zhaojc1995/article/details/80572098&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/28687529">https://zhuanlan.zhihu.com/p/28687529&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/42717426">https://zhuanlan.zhihu.com/p/42717426&lt;/a>
+&lt;a href="https://www.jianshu.com/p/9dc9f41f0b29">https://www.jianshu.com/p/9dc9f41f0b29&lt;/a>
+&lt;a href="https://www.zhihu.com/question/34878706/answer/665429718">https://www.zhihu.com/question/34878706/answer/665429718&lt;/a>
+&lt;a href="https://blog.csdn.net/lreaderl/article/details/78022724">https://blog.csdn.net/lreaderl/article/details/78022724&lt;/a>
+&lt;a href="https://zhuanlan.zhihu.com/p/138267466">https://zhuanlan.zhihu.com/p/138267466&lt;/a>&lt;/p></description></item></channel></rss>
